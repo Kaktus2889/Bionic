@@ -39,4 +39,10 @@ class ActionPolicy:
         exists=intent.type in AgentToolRegistry.SPECS;allowed=intent.type in {x.name for x in AgentToolRegistry().available(agent)}
         duplicate=db.scalar(select(func.count(Action.id)).where(Action.company_id==company.id,Action.agent_id==agent.id,Action.type==intent.type,Action.status.in_(["APPROVED","QUEUED","EXECUTING"]))) or 0
         budget_ok=intent.estimated_cost<=company.cash;low_confidence=intent.confidence<.45 and intent.risk in {"MEDIUM","HIGH"}
-        return {"tool_exists":exists,"role_allowed":allowed,"budget_ok":budget_ok,"not_duplicate":duplicate==0,"confidence_safe":not low_confidence,"allowed":exists and allowed and budget_ok and duplicate==0 and not low_confidence}
+        task_bounds=True
+        if intent.type=="CREATE_TASK":
+            from .config import settings
+            open_n=db.scalar(select(func.count(Task.id)).where(Task.company_id==company.id,Task.assignee_id==agent.id,Task.status.notin_([TaskStatus.DONE,TaskStatus.CANCELLED]))) or 0
+            parent=intent.parameters.get("parent_task_id");children=db.scalar(select(func.count(Task.id)).where(Task.parent_task_id==parent)) if parent else 0
+            task_bounds=open_n<settings.max_open_tasks_per_agent and (not parent or children<settings.max_children_per_task)
+        return {"tool_exists":exists,"role_allowed":allowed,"budget_ok":budget_ok,"not_duplicate":duplicate==0,"confidence_safe":not low_confidence,"task_bounds":task_bounds,"allowed":exists and allowed and budget_ok and duplicate==0 and not low_confidence and task_bounds}
