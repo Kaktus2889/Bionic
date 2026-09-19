@@ -1,0 +1,1 @@
+# ADR 0002: Actions, worker boundary and finance ledger\n\nStatus: Accepted\n\nRisky capabilities enter through ActionEngine and PermissionEngine. Financial state uses an append-only transaction ledger plus cached account balance. Redis is coordination, not source of truth. Persistent memories remain in PostgreSQL; semantic vectors are a later retrieval enhancement.\n
