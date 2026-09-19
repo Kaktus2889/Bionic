@@ -33,3 +33,18 @@ Next: Event Engine + customer/meeting primitives, worker integration tests, WebS
 - Verified run 35417363691: Alembic upgrade -> downgrade base -> upgrade head, 4 pytest tests passed, Ruff correctness checks passed, frontend production build passed.
 
 Next: recurring Scheduler operations, KPI time-series analytics, strategy reactions to Event/Finance/Customer signals, then LLM-backed planning behind the existing provider/router boundary.
+
+## 2026-09-19 — Multi-cycle autonomous runtime
+- START now persists RUNNING state consumed by the worker scheduler; PAUSED and ERROR are durable lifecycle states. x1/x5/x20/x100 are bounded scheduler work rates.
+- Added Redis distributed company-cycle locking plus durable CompanyCycle idempotency, so worker restarts resume from PostgreSQL instead of ephemeral scheduler state.
+- Added KPIObservation time series derived from tasks, ledger, customers and events: task completion, revenue, expenses, cash, burn, runway, customer count/satisfaction, churn and open critical events.
+- Added persisted StrategyRevision with reason/signals/previous/new strategy/expected effect and periodic company review.
+- Added bounded Plan domain and structured Pydantic PlanProposal. LLM proposes; domain validates and materializes a bounded task graph. Deterministic provider is CI/default; ENV-configured compatible HTTP provider is optional.
+- Added AgentRuntime observe/retrieve/task transition/meaningful reflection loop. Reflection memory is only retained for completed meaningful work.
+- Added autonomous-loop API and dashboard explanation timeline.
+- Added pgvector memory embeddings behind EmbeddingProvider, with deterministic vectors for CI and real provider configuration by ENV.
+- Added multi-cycle autonomy and crash-recovery tests.
+- CI run 35417745225 found a backward-compatibility regression: the prior goal test expected a goal-linked KPI. Restored that invariant; run 35417794151 passed.
+- pgvector rollout then exposed historical migration ordering: 0001 metadata bootstrap referenced Vector before extension creation. Fixed by enabling vector before metadata creation and making 0006 compatibility-aware. Run 35417935272 passed after the fix.
+
+The autonomous runtime is intentionally bounded: no HR/payroll/market expansion was added. Next depth work should improve real agent ActionIntent planning, KPI trend windows and richer strategy policies rather than adding unrelated domains.
