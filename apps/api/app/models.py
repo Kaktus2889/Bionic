@@ -4,7 +4,7 @@ from sqlalchemy import String,Text,DateTime,ForeignKey,Enum,Float,Integer,JSON,I
 from sqlalchemy.orm import Mapped,mapped_column
 from .db import Base
 def now(): return datetime.now(timezone.utc)
-class CompanyStatus(str,enum.Enum): PAUSED="PAUSED"; REALTIME="REALTIME"; FAST="FAST"; SIMULATION="SIMULATION"
+class CompanyStatus(str,enum.Enum): PAUSED="PAUSED"; RUNNING="RUNNING"; ERROR="ERROR"; REALTIME="REALTIME"; FAST="FAST"; SIMULATION="SIMULATION"
 class Autonomy(str,enum.Enum): MANUAL="MANUAL"; SEMI_AUTONOMOUS="SEMI_AUTONOMOUS"; AUTONOMOUS="AUTONOMOUS"
 class TaskStatus(str,enum.Enum): BACKLOG="BACKLOG"; TODO="TODO"; IN_PROGRESS="IN_PROGRESS"; REVIEW="REVIEW"; BLOCKED="BLOCKED"; DONE="DONE"; CANCELLED="CANCELLED"
 class Priority(str,enum.Enum): LOW="LOW"; MEDIUM="MEDIUM"; HIGH="HIGH"; CRITICAL="CRITICAL"
@@ -88,3 +88,16 @@ class Goal(Stamp,Base):
 class KPI(Base):
     __tablename__="kpis"
     id:Mapped[uuid.UUID]=mapped_column(primary_key=True,default=uuid.uuid4); company_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("companies.id",ondelete="CASCADE"),index=True); agent_id:Mapped[uuid.UUID|None]=mapped_column(ForeignKey("agents.id",ondelete="SET NULL"),nullable=True); goal_id:Mapped[uuid.UUID|None]=mapped_column(ForeignKey("goals.id",ondelete="CASCADE"),nullable=True); name:Mapped[str]=mapped_column(String(160)); value:Mapped[float]=mapped_column(Float,default=0); target:Mapped[float]=mapped_column(Float,default=0); unit:Mapped[str]=mapped_column(String(40),default="count"); measured_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
+
+class KPIObservation(Base):
+    __tablename__="kpi_observations"
+    id:Mapped[uuid.UUID]=mapped_column(primary_key=True,default=uuid.uuid4); kpi_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("kpis.id",ondelete="CASCADE"),index=True); company_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("companies.id",ondelete="CASCADE"),index=True); value:Mapped[float]=mapped_column(Float); target:Mapped[float]=mapped_column(Float,default=0); source:Mapped[str]=mapped_column(String(80)); metadata_:Mapped[dict]=mapped_column("metadata",JSON,default=dict); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now,index=True)
+class StrategyRevision(Base):
+    __tablename__="strategy_revisions"
+    id:Mapped[uuid.UUID]=mapped_column(primary_key=True,default=uuid.uuid4); company_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("companies.id",ondelete="CASCADE"),index=True); goal_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("goals.id",ondelete="CASCADE")); reason:Mapped[str]=mapped_column(Text); signals:Mapped[dict]=mapped_column(JSON,default=dict); previous_strategy:Mapped[str]=mapped_column(Text,default=""); new_strategy:Mapped[str]=mapped_column(Text); expected_effect:Mapped[str]=mapped_column(Text); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now,index=True)
+class Plan(Stamp,Base):
+    __tablename__="plans"; __table_args__=(UniqueConstraint("company_id","cycle_key",name="uq_plan_company_cycle"),)
+    id:Mapped[uuid.UUID]=mapped_column(primary_key=True,default=uuid.uuid4); company_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("companies.id",ondelete="CASCADE"),index=True); goal_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("goals.id",ondelete="CASCADE")); strategy_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("strategy_revisions.id",ondelete="CASCADE")); objective:Mapped[str]=mapped_column(Text); steps:Mapped[list]=mapped_column(JSON,default=list); dependencies:Mapped[dict]=mapped_column(JSON,default=dict); owners:Mapped[list]=mapped_column(JSON,default=list); priority:Mapped[str]=mapped_column(String(20),default="HIGH"); expected_outcome:Mapped[str]=mapped_column(Text); status:Mapped[str]=mapped_column(String(32),default="ACTIVE"); cycle_key:Mapped[str]=mapped_column(String(120))
+class CompanyCycle(Base):
+    __tablename__="company_cycles"; __table_args__=(UniqueConstraint("company_id","tick",name="uq_company_cycle_tick"),)
+    id:Mapped[uuid.UUID]=mapped_column(primary_key=True,default=uuid.uuid4); company_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("companies.id",ondelete="CASCADE"),index=True); tick:Mapped[int]=mapped_column(Integer); status:Mapped[str]=mapped_column(String(32),default="RUNNING"); phase:Mapped[str]=mapped_column(String(80),default="OBSERVE"); idempotency_key:Mapped[str]=mapped_column(String(160),unique=True); started_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now); finished_at:Mapped[datetime|None]=mapped_column(DateTime(timezone=True),nullable=True); error:Mapped[str|None]=mapped_column(Text,nullable=True)
