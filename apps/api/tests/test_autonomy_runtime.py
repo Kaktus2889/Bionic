@@ -17,7 +17,7 @@ def test_multi_cycle_autonomy_feedback_loop():
         assert db.scalar(select(func.count(KPIObservation.id)).where(KPIObservation.company_id==cid))>=70
         assert db.scalar(select(func.count(StrategyRevision.id)).where(StrategyRevision.company_id==cid))>=2
         assert db.scalar(select(func.count(Decision.id)).where(Decision.company_id==cid))>=2
-        assert db.scalar(select(func.count(Memory.id).where(Memory.company_id==cid,Memory.layer=="REFLECTION")))>=1
+        assert db.scalar(select(func.count(Memory.id)).where(Memory.company_id==cid,Memory.layer=="REFLECTION"))>=1
 def test_cycle_recovery_is_idempotent():
     with SessionLocal() as db:
         c=make_company(db);cid=c.id;key=f"{cid}:1";db.add(CompanyCycle(company_id=cid,tick=1,idempotency_key=key,status="RUNNING",phase="PLAN"));db.commit()
