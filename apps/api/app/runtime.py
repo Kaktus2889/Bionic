@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from .models import Company,CompanyStatus,CompanyCycle,Goal,StrategyRevision,Plan,Activity,now
+from .models import Company,CompanyStatus,CompanyCycle,Goal,StrategyRevision,Plan,Activity,Channel,Message,now
 from .kpi import KPIEngine
 from .strategy import StrategyEngine
 from .planning import PlanningEngine
@@ -12,7 +12,10 @@ class CompanyRuntime:
         if old and old.status=="COMPLETED":return old
         cycle=old or CompanyCycle(company_id=company.id,tick=tick,idempotency_key=key,status="RUNNING",phase="OBSERVE");db.add(cycle);db.flush()
         try:
-            kpis=KPIEngine().measure(db,company);cycle.phase="STRATEGY";strategy=StrategyEngine().review(db,company,kpis,force=tick==1 or tick%settings.company_review_interval==0)
+            kpis=KPIEngine().measure(db,company)
+            if tick==1:
+                channel=db.scalar(select(Channel).where(Channel.company_id==company.id,Channel.name=="general"));goal0=db.scalar(select(Goal).where(Goal.company_id==company.id,Goal.status=="ACTIVE"));db.add(Message(company_id=company.id,channel_id=channel.id,sender_id=goal0.owner_id,content=f"Autonomous runtime started. Goal: {goal0.title}"))
+            cycle.phase="STRATEGY";strategy=StrategyEngine().review(db,company,kpis,force=tick==1 or tick%settings.company_review_interval==0)
             goal=db.scalar(select(Goal).where(Goal.company_id==company.id,Goal.status=="ACTIVE"));cycle.phase="PLAN"
             active=db.scalar(select(Plan).where(Plan.company_id==company.id,Plan.status=="ACTIVE").order_by(Plan.created_at.desc()))
             if not active or tick==1 or (tick%settings.company_review_interval==0 and active.strategy_id!=strategy.id):
