@@ -43,7 +43,7 @@ def pause(id:UUID,db:Session=Depends(get_db)):
 async def tick(id:UUID,db:Session=Depends(get_db)):
     c=get_company(db,id)
     if c.status==CompanyStatus.PAUSED:raise HTTPException(409,"Company is paused")
-    cycle=await CompanyRuntime().cycle(db,c);db.commit();return {"tick":cycle.tick,"status":cycle.status,"phase":cycle.phase}
+    cycle=await CompanyRuntime().cycle(db,c);db.commit();tasks_n=db.scalar(select(func.count(Task.id)).where(Task.company_id==id)) or 0;messages_n=db.scalar(select(func.count(Message.id)).where(Message.company_id==id)) or 0;decisions_n=db.scalar(select(func.count(Decision.id)).where(Decision.company_id==id)) or 0;activities_n=db.scalar(select(func.count(Activity.id)).where(Activity.company_id==id)) or 0;return {"tick":cycle.tick,"status":cycle.status,"phase":cycle.phase,"tasks_created":tasks_n,"messages_created":messages_n,"decisions_created":decisions_n,"activities":activities_n}
 @app.get("/companies/{id}/agents")
 def agents(id:UUID,db:Session=Depends(get_db)):
     get_company(db,id); return db.scalars(select(Agent).where(Agent.company_id==id)).all()
