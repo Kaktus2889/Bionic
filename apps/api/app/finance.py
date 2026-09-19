@@ -13,7 +13,7 @@ class FinanceEngine:
         if kind=="DEBIT" and status=="POSTED" and self.balance(db,company.id)<amount:raise ValueError("insufficient funds")
         a=db.scalar(select(CompanyAccount).where(CompanyAccount.company_id==company.id))
         if not a:raise RuntimeError("company account missing")
-        t=Transaction(company_id=company.id,account_id=a.id,type=kind,category=category,amount=amount,description=description,simulated=simulated,status=status,reference_type=reference_type,reference_id=reference_id);db.add(t);return t
+        t=Transaction(company_id=company.id,account_id=a.id,type=kind,category=category,amount=amount,description=description,simulated=simulated,status=status,reference_type=reference_type,reference_id=reference_id);db.add(t);db.flush();return t
     def transfer(self,db:Session,company,amount:float,description:str)->tuple[Transaction,Transaction]:
         return (self.record(db,company,"DEBIT",amount,"TRANSFER",description),self.record(db,company,"CREDIT",amount,"TRANSFER",description))
     def summary(self,db:Session,company_id)->dict:
