@@ -8,6 +8,8 @@ branch_labels=None
 depends_on=None
 def upgrade():
     op.execute("CREATE EXTENSION IF NOT EXISTS vector")
-    op.add_column("memories",sa.Column("embedding",Vector(32),nullable=True))
+    if "embedding" not in {x["name"] for x in sa.inspect(op.get_bind()).get_columns("memories")}:
+        op.add_column("memories",sa.Column("embedding",Vector(32),nullable=True))
 def downgrade():
-    op.drop_column("memories","embedding")
+    if "embedding" in {x["name"] for x in sa.inspect(op.get_bind()).get_columns("memories")}:
+        op.drop_column("memories","embedding")
