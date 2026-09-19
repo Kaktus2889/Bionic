@@ -20,7 +20,7 @@ class CompanyRuntime:
             active=db.scalar(select(Plan).where(Plan.company_id==company.id,Plan.status=="ACTIVE").order_by(Plan.created_at.desc()))
             if not active or tick==1 or (tick%settings.company_review_interval==0 and active.strategy_id!=strategy.id):
                 active=await PlanningEngine().create(db,company,goal,strategy,kpis,f"{company.id}:{strategy.id}")
-            cycle.phase="AGENT_ACTIONS";AgentRuntime().step(db,company);cycle.phase="MEASURE";KPIEngine().measure(db,company)
+            cycle.phase="AGENT_ACTIONS";await AgentRuntime().step(db,company);cycle.phase="MEASURE";KPIEngine().measure(db,company)
             company.tick_number=tick;cycle.status="COMPLETED";cycle.phase="DONE";cycle.finished_at=now();db.add(Activity(company_id=company.id,agent_id=goal.owner_id,action="COMPANY_CYCLE_COMPLETED",module="runtime",detail=f"tick={tick}; plan={active.id}"));return cycle
         except Exception as exc:
             cycle.status="FAILED";cycle.error=str(exc);company.status=CompanyStatus.ERROR;db.add(Activity(company_id=company.id,action="COMPANY_CYCLE_FAILED",module="runtime",status="ERROR",detail=f"tick={tick}",error=str(exc)));raise
