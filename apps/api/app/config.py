@@ -20,5 +20,15 @@ class Settings(BaseSettings):
     embedding_endpoint:str=""
     embedding_api_key:str=""
     embedding_model:str="embedding"
+    max_task_depth:int=3
+    max_children_per_task:int=5
+    max_open_tasks_per_agent:int=10
+    max_retry_per_objective:int=2
+    llm_routine_model:str="cheap"
+    llm_analysis_model:str="cheap"
+    llm_planning_model:str="strong"
+    llm_strategic_model:str="strong"
+    llm_coding_model:str="strong"
+    llm_reflection_model:str="cheap"
     model_config=SettingsConfigDict(env_file=".env",extra="ignore")
 settings=Settings()
