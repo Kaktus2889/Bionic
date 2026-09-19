@@ -1,0 +1,20 @@
+name: Windows EXE
+on:
+  push:
+    branches: [main]
+    paths: ["launcher/**", ".github/workflows/windows-exe.yml"]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pyinstaller
+      - run: python -m PyInstaller --onefile --windowed --name Bionic launcher/bionic_launcher.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Bionic-Windows-EXE
+          path: dist/Bionic.exe
