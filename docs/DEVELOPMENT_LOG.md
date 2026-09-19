@@ -48,3 +48,13 @@ Next: recurring Scheduler operations, KPI time-series analytics, strategy reacti
 - pgvector rollout then exposed historical migration ordering: 0001 metadata bootstrap referenced Vector before extension creation. Fixed by enabling vector before metadata creation and making 0006 compatibility-aware. Run 35417935272 passed after the fix.
 
 The autonomous runtime is intentionally bounded: no HR/payroll/market expansion was added. Next depth work should improve real agent ActionIntent planning, KPI trend windows and richer strategy policies rather than adding unrelated domains.
+
+## 2026-09-19 — AgentRuntime V2
+- Added role-bounded AgentObservation, explicit AgentToolRegistry, structured ActionIntent candidates, ActionEvaluator and ActionPolicy.
+- Added validated LLM IntentPlanner with two controlled attempts and deterministic fallback; cost-class routing now supports ROUTINE/ANALYSIS/PLANNING/STRATEGIC/CODING/REFLECTION via ENV.
+- Persisted explainable AgentDecisionTrace and ActionResult; dashboard now exposes AGENT LIVE without chain-of-thought.
+- Added durable InformationRequest collaboration and failure-aware next-cycle behavior.
+- Reflection is structured and meaningful-outcome gated; memories use EPISODIC/SEMANTIC/PROCEDURAL layers with exact deduplication and semantic retrieval.
+- Added KPITrendEngine and bounded delegation policy.
+- Added LLM boundary/adversarial tests for valid/malformed/schema-invalid/empty/timeout/provider-error output, nonexistent tools, unauthorized expense and role-bounded observations.
+- CI initially exposed the old REFLECTION-layer assertion after typed memory rollout; updated autonomy test to assert EPISODIC reflection. Run 35418326233 passed before final documentation/UI commit.
