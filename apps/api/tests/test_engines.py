@@ -1,5 +1,5 @@
 import os
-os.environ["DATABASE_URL"]="sqlite+pysqlite:///:memory:"
+os.environ.setdefault("DATABASE_URL","sqlite+pysqlite:///./test_api.db")
 from app.db import Base,engine,SessionLocal
 from app.models import Company,Agent,Autonomy,CompanyStatus
 from app.actions import PermissionEngine,PermissionDenied
