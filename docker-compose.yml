@@ -24,6 +24,16 @@ services:
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_started}
+  worker:
+    build: ./apps/api
+    command: ["python","/worker/main.py"]
+    volumes: ["./apps/worker:/worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-aicompany}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-aicompany}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_started}
   web:
     build: ./apps/web
     environment:
