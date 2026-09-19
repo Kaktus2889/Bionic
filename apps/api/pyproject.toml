@@ -13,3 +13,7 @@ dev=["pytest>=8,<9","httpx>=0.28,<1","ruff>=0.8,<1"]
 
 [tool.pytest.ini_options]
 testpaths=["tests"]
+
+[tool.setuptools.packages.find]
+include=["app*"]
+exclude=["alembic*","tests*"]
