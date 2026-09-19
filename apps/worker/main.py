@@ -30,8 +30,11 @@ async def scheduler(redis):
                 with SessionLocal() as db:
                     company=db.get(Company,company_id)
                     if company and company.status==CompanyStatus.RUNNING:
-                        try:await CompanyRuntime().cycle(db,company);db.commit()
-                        except Exception:db.commit()
+                        cycles={1:1,5:2,20:3,100:4}.get(company.speed,1)
+                        for _ in range(cycles):
+                            if company.status!=CompanyStatus.RUNNING:break
+                            try:await CompanyRuntime().cycle(db,company);db.commit()
+                            except Exception:db.commit();break
             finally:
                 try:await lock.release()
                 except Exception:pass
