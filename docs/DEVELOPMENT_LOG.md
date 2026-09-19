@@ -25,3 +25,11 @@ Next: runtime/CI verification, WebSocket feed, Action/Permission engine, worker,
 Next: Event Engine + customer/meeting primitives, worker integration tests, WebSocket test, approval execution lifecycle, richer finance metrics and semantic-memory retrieval.
 
 ## 2026-09-19 — Autonomous loop expansion (verification pending)\n- Added durable Event Engine with routing, deduplication, retries and task/activity effects.\n- Added CRM customer/interactions/notes and context-to-memory flow.\n- Added executable meetings producing contributions, Decisions and action items.\n- Expanded Action lifecycle with approval, queueing, attempts, cancellation, retries and idempotency.\n- Redis worker now executes queued Actions; PostgreSQL remains authoritative.\n- Memory retrieval is bounded/ranked with retention gate and domain references.\n- Finance v2 derives balances/P&L from posted ledger entries; legacy mutable balance fields are no longer written.\n- Added APIs/dashboard observability and reconnecting Live Activity.\n- Added full autonomous-loop integration test using real CI PostgreSQL + Redis and WebSocket.\n- Added ADR 0003.\n\nCI verification follows; failures and fixes will be recorded before this milestone is marked verified.\n
+## 2026-09-19 — Autonomous loop verified; roadmap advanced
+- CI exposed two real defects: metadata-based historical bootstrap made 0003 see already-present columns, and ledger reads missed unflushed writes because sessions disable autoflush. Migration evolution was made compatibility-aware and ledger writes now flush before derived balance checks.
+- Full CI run 35417252804 passed after the autonomous-loop fixes.
+- Advanced roadmap into Goal Engine / Strategy / KPI foundation: durable Goal and KPI models, migration 0004, goal bootstrap, deterministic StrategyEngine evaluation and API/test coverage.
+- CI then caught malformed migration source formatting in 0004; corrected it.
+- Verified run 35417363691: Alembic upgrade -> downgrade base -> upgrade head, 4 pytest tests passed, Ruff correctness checks passed, frontend production build passed.
+
+Next: recurring Scheduler operations, KPI time-series analytics, strategy reactions to Event/Finance/Customer signals, then LLM-backed planning behind the existing provider/router boundary.
