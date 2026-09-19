@@ -24,9 +24,10 @@ class CompatibleHTTPProvider(LLMProvider):
 class LLMRouter:
     def __init__(self,providers:dict[str,LLMProvider]): self.providers=providers
     async def route(self,kind:str,prompt:str)->LLMResult:
-        key="strong" if kind in {"STRATEGY","PLANNING","CODING","EXECUTIVE_DECISION"} else "cheap"
+        models={"ROUTINE":settings.llm_routine_model,"ANALYSIS":settings.llm_analysis_model,"PLANNING":settings.llm_planning_model,"STRATEGIC":settings.llm_strategic_model,"STRATEGY":settings.llm_strategic_model,"EXECUTIVE_DECISION":settings.llm_strategic_model,"CODING":settings.llm_coding_model,"REFLECTION":settings.llm_reflection_model}
+        model=models.get(kind,settings.llm_cheap_model);key="strong" if model in {settings.llm_planning_model,settings.llm_strategic_model,settings.llm_coding_model} else "cheap"
         if key not in self.providers: raise RuntimeError(f"No LLM provider configured for {key}")
-        return await self.providers[key].complete(prompt,model=settings.llm_model if key=="strong" else settings.llm_cheap_model)
+        return await self.providers[key].complete(prompt,model=model)
 def default_router()->LLMRouter:
     provider=CompatibleHTTPProvider(settings.llm_endpoint,settings.llm_api_key) if settings.llm_provider=="http" and settings.llm_endpoint and settings.llm_api_key else DeterministicLLMProvider()
     return LLMRouter({"strong":provider,"cheap":provider})
