@@ -1,6 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from .models import Company,Agent,Task,Channel,Message,Decision,Activity,CompanyStatus,TaskStatus,Priority
+from .finance import FinanceEngine
+from .memory import MemoryService
 CORE=[("Ada","CEO","Management",5),("Linus","CTO","Engineering",4),("Grace","Product Manager","Product",3),("Margaret","Developer","Engineering",2),("Edsger","QA Engineer","Engineering",2)]
 CHANNELS=["general","management","engineering","marketing","sales","finance","support"]
 def bootstrap_company(db:Session,company:Company):
@@ -10,6 +12,8 @@ def bootstrap_company(db:Session,company:Company):
         db.add(a); db.flush()
         if pos=="CEO": ceo=a
     for name in CHANNELS: db.add(Channel(company_id=company.id,name=name))
+    FinanceEngine().open_account(db,company)
+    MemoryService().remember(db,company.id,None,"COMPANY",f"Goal: {company.goal}",1.0,{"kind":"goal"})
     db.add(Activity(company_id=company.id,agent_id=ceo.id,action="COMPANY_BOOTSTRAPPED",module="company",detail="Spawned five core agents"))
 def run_tick(db:Session,company:Company):
     if company.status==CompanyStatus.PAUSED: raise ValueError("Company is paused")
