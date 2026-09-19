@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from .models import CompanyAccount,Transaction,Budget
 class FinanceEngine:
     def open_account(self,db:Session,company)->CompanyAccount:
-        a=CompanyAccount(company_id=company.id,balance=0);db.add(a);db.flush();db.add(Transaction(company_id=company.id,account_id=a.id,type="CREDIT",category="CAPITAL",amount=company.capital,description="Initial capital",simulated=False,status="POSTED"));return a
+        a=CompanyAccount(company_id=company.id,balance=0);db.add(a);db.flush();db.add(Transaction(company_id=company.id,account_id=a.id,type="CREDIT",category="CAPITAL",amount=company.capital,description="Initial capital",simulated=False,status="POSTED"));db.flush();return a
     def balance(self,db:Session,company_id)->float:
         credits=db.scalar(select(func.coalesce(func.sum(Transaction.amount),0)).where(Transaction.company_id==company_id,Transaction.type=="CREDIT",Transaction.status=="POSTED")) or 0
         debits=db.scalar(select(func.coalesce(func.sum(Transaction.amount),0)).where(Transaction.company_id==company_id,Transaction.type=="DEBIT",Transaction.status=="POSTED")) or 0
