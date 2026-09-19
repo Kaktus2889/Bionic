@@ -5,7 +5,7 @@ class StrategyEngine:
     def bootstrap_goal(self,db:Session,company,owner)->Goal:
         existing=db.scalar(select(Goal).where(Goal.company_id==company.id,Goal.status=="ACTIVE"))
         if existing:return existing
-        g=Goal(company_id=company.id,owner_id=owner.id,title=company.goal,target=100,current=0,unit="percent");db.add(g);db.flush();return g
+        g=Goal(company_id=company.id,owner_id=owner.id,title=company.goal,target=100,current=0,unit="percent");db.add(g);db.flush();db.add(KPI(company_id=company.id,agent_id=owner.id,goal_id=g.id,name="task_completion_rate",value=0,target=100,unit="percent"));return g
     def signals(self,db:Session,company,kpis:dict)->dict:
         recent_mem=[m.content for m in db.scalars(select(Memory).where(Memory.company_id==company.id).order_by(Memory.created_at.desc()).limit(5))]
         return {"kpis":kpis,"critical_events":int(kpis.get("open_critical_events",0)),"churn":kpis.get("churn",0),"cash":kpis.get("cash",0),"customer_memory":recent_mem}
