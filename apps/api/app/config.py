@@ -16,5 +16,9 @@ class Settings(BaseSettings):
     company_review_interval:int=5
     max_plan_steps:int=6
     cycle_lock_ttl:int=60
+    embedding_provider:str="deterministic"
+    embedding_endpoint:str=""
+    embedding_api_key:str=""
+    embedding_model:str="embedding"
     model_config=SettingsConfigDict(env_file=".env",extra="ignore")
 settings=Settings()
