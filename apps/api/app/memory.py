@@ -7,6 +7,8 @@ class MemoryService:
         m=Memory(company_id=company_id,agent_id=agent_id,layer=layer,content=content,importance=max(0,min(1,importance)),metadata_=metadata or {},source=source,embedding=embedding_provider().embed(content),**{k:v for k,v in links.items() if k in {"customer_id","event_id","task_id","decision_id","meeting_id"}});db.add(m);return m
     def remember_if_worthy(self,db:Session,company_id,agent_id,layer:str,content:str,importance:float=.5,**kw):
         if importance<.55 or len(content.strip())<8:return None
+        existing=db.scalar(select(Memory).where(Memory.company_id==company_id,Memory.agent_id==agent_id,Memory.layer==layer,Memory.content==content).limit(1))
+        if existing:return existing
         return self.remember(db,company_id,agent_id,layer,content,importance,**kw)
     def retrieve(self,db:Session,company_id,agent_id,query:str|None=None,limit:int=8)->list[Memory]:
         limit=max(1,min(limit,20));base=(Memory.company_id==company_id)&((Memory.agent_id==agent_id)|(Memory.agent_id.is_(None)))
