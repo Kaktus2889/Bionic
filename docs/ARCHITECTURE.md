@@ -34,3 +34,8 @@ Posted ledger transactions remain the financial source of truth. KPI measurement
 - no raw LLM output becomes an Action;
 - tenant boundary on autonomous work;
 - worker restart must not duplicate durable effects.
+
+## AgentRuntime V2
+Agents receive role-bounded AgentObservation packets rather than CompanyState. The decision path is Observation -> relevant memory -> validated CandidateActionIntent list -> ActionEvaluator -> ActionPolicy -> Permission/Approval -> execution -> ActionResult -> meaningful AgentReflection -> gated typed memory -> next observation. AgentDecisionTrace stores only concise observation summaries, candidates, selected rationale, policy checks, result and reflection; private chain-of-thought is never persisted.
+
+AgentToolRegistry filters tools by role permissions. ActionPolicy checks registry membership, role permission, budget, duplicate active actions, confidence/risk and delegation bounds. Low-confidence risky work is blocked in favor of information/review/escalation paths. InformationRequest is a durable collaboration primitive. KPITrendEngine derives RISING/FALLING/STABLE/VOLATILE/INSUFFICIENT_DATA from observation history.
