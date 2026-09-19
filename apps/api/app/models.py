@@ -81,3 +81,10 @@ class ActionAttempt(Base):
 class Budget(Base):
     __tablename__="budgets"
     id:Mapped[uuid.UUID]=mapped_column(primary_key=True,default=uuid.uuid4); company_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("companies.id",ondelete="CASCADE"),index=True); category:Mapped[str]=mapped_column(String(80)); limit_amount:Mapped[float]=mapped_column(Float); period:Mapped[str]=mapped_column(String(20),default="MONTHLY"); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
+
+class Goal(Stamp,Base):
+    __tablename__="goals"
+    id:Mapped[uuid.UUID]=mapped_column(primary_key=True,default=uuid.uuid4); company_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("companies.id",ondelete="CASCADE"),index=True); owner_id:Mapped[uuid.UUID|None]=mapped_column(ForeignKey("agents.id",ondelete="SET NULL"),nullable=True); title:Mapped[str]=mapped_column(String(240)); target:Mapped[float]=mapped_column(Float,default=1); current:Mapped[float]=mapped_column(Float,default=0); unit:Mapped[str]=mapped_column(String(40),default="progress"); status:Mapped[str]=mapped_column(String(32),default="ACTIVE"); deadline:Mapped[datetime|None]=mapped_column(DateTime(timezone=True),nullable=True)
+class KPI(Base):
+    __tablename__="kpis"
+    id:Mapped[uuid.UUID]=mapped_column(primary_key=True,default=uuid.uuid4); company_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("companies.id",ondelete="CASCADE"),index=True); agent_id:Mapped[uuid.UUID|None]=mapped_column(ForeignKey("agents.id",ondelete="SET NULL"),nullable=True); goal_id:Mapped[uuid.UUID|None]=mapped_column(ForeignKey("goals.id",ondelete="CASCADE"),nullable=True); name:Mapped[str]=mapped_column(String(160)); value:Mapped[float]=mapped_column(Float,default=0); target:Mapped[float]=mapped_column(Float,default=0); unit:Mapped[str]=mapped_column(String(40),default="count"); measured_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
