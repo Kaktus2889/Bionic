@@ -1,5 +1,5 @@
 import os
-os.environ["DATABASE_URL"]="sqlite+pysqlite:///:memory:"
+os.environ["DATABASE_URL"]="sqlite+pysqlite:///./test_api.db"
 from fastapi.testclient import TestClient
 from app.db import Base,engine
 from app.main import app
