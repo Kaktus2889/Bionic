@@ -15,6 +15,7 @@ from .events import EventEngine
 from .meetings import MeetingEngine
 from .actions import ActionEngine,InvalidTransition
 from .queue import ActionQueue
+from .strategy import StrategyEngine
 app=FastAPI(title="AI COMPANY OS",version="0.1.0")
 app.add_middleware(CORSMiddleware,allow_origins=[x.strip() for x in settings.cors_origins.split(",")],allow_methods=["*"],allow_headers=["*"])
 def get_company(db:Session,id:UUID):
@@ -107,3 +108,6 @@ def approve_action(id:UUID,body:dict,db:Session=Depends(get_db)):
     except InvalidTransition as e:db.rollback();raise HTTPException(409,str(e)) from e
 @app.get("/companies/{id}/actions")
 def actions(id:UUID,db:Session=Depends(get_db)):get_company(db,id);return db.scalars(select(Action).where(Action.company_id==id).order_by(Action.created_at.desc())).all()
+
+@app.get("/companies/{id}/strategy")
+def strategy(id:UUID,db:Session=Depends(get_db)):return StrategyEngine().evaluate(db,get_company(db,id))
