@@ -5,11 +5,16 @@ from sqlalchemy import select,func
 from sqlalchemy.orm import Session
 from .config import settings
 from .db import get_db
-from .models import Company,Agent,Task,Message,Decision,Activity,CompanyStatus,Autonomy
+from .models import Company,Agent,Task,Message,Decision,Activity,CompanyStatus,Autonomy,Customer,Event,Meeting,Action
 from .schemas import CompanyCreate,CompanyOut,TickOut
 from .services import bootstrap_company,run_tick
 from .finance import FinanceEngine
 from .memory import MemoryService
+from .customers import CustomerService
+from .events import EventEngine
+from .meetings import MeetingEngine
+from .actions import ActionEngine,InvalidTransition
+from .queue import ActionQueue
 app=FastAPI(title="AI COMPANY OS",version="0.1.0")
 app.add_middleware(CORSMiddleware,allow_origins=[x.strip() for x in settings.cors_origins.split(",")],allow_methods=["*"],allow_headers=["*"])
 def get_company(db:Session,id:UUID):
@@ -69,3 +74,36 @@ async def activity_ws(ws:WebSocket,id:UUID):
                 last=marker
             import asyncio; await asyncio.sleep(1)
     except WebSocketDisconnect: return
+
+@app.post("/companies/{id}/customers",status_code=201)
+def create_customer(id:UUID,body:dict,db:Session=Depends(get_db)):
+    c=get_company(db,id);x=CustomerService().create(db,c,body["name"],body.get("assigned_agent_id"),body.get("segment","default"),body.get("context"));db.commit();db.refresh(x);return x
+@app.get("/companies/{id}/customers")
+def customers(id:UUID,db:Session=Depends(get_db)):get_company(db,id);return db.scalars(select(Customer).where(Customer.company_id==id)).all()
+@app.post("/companies/{id}/events",status_code=201)
+def create_event(id:UUID,body:dict,db:Session=Depends(get_db)):
+    c=get_company(db,id);e=EventEngine().create(db,c,body["type"],body.get("payload",{}),body["idempotency_key"],body.get("customer_id"),body.get("source","API"),body.get("priority","MEDIUM"));EventEngine().process(db,e);db.commit();db.refresh(e);return e
+@app.get("/companies/{id}/events")
+def events(id:UUID,db:Session=Depends(get_db)):get_company(db,id);return db.scalars(select(Event).where(Event.company_id==id).order_by(Event.created_at.desc())).all()
+@app.post("/companies/{id}/meetings",status_code=201)
+def create_meeting(id:UUID,body:dict,db:Session=Depends(get_db)):
+    c=get_company(db,id);owner=db.get(Agent,body["owner_id"]);parts=list(db.scalars(select(Agent).where(Agent.id.in_(body["participant_ids"]))));m=MeetingEngine().create(db,c,owner,parts,body["agenda"],body.get("type","REVIEW"),body.get("context"));db.commit();db.refresh(m);return m
+@app.post("/meetings/{id}/execute")
+def execute_meeting(id:UUID,db:Session=Depends(get_db)):
+    m=db.get(Meeting,id)
+    if not m:raise HTTPException(404,"Meeting not found")
+    d=MeetingEngine().execute(db,m);db.commit();return d
+@app.get("/companies/{id}/meetings")
+def meetings(id:UUID,db:Session=Depends(get_db)):get_company(db,id);return db.scalars(select(Meeting).where(Meeting.company_id==id).order_by(Meeting.created_at.desc())).all()
+@app.post("/companies/{id}/actions",status_code=201)
+def create_action(id:UUID,body:dict,db:Session=Depends(get_db)):
+    c=get_company(db,id);agent=db.get(Agent,body["agent_id"]);a=ActionEngine().submit(db,c,agent,body["type"],body.get("payload",{}),body.get("idempotency_key"));db.commit();db.refresh(a);return a
+@app.post("/actions/{id}/approve")
+def approve_action(id:UUID,body:dict,db:Session=Depends(get_db)):
+    a=db.get(Action,id)
+    if not a:raise HTTPException(404,"Action not found")
+    try:
+        ActionEngine().approve(db,a,db.get(Agent,body["approver_id"]));ActionEngine().queue(db,a);db.commit();ActionQueue().enqueue(a.id);db.refresh(a);return a
+    except InvalidTransition as e:db.rollback();raise HTTPException(409,str(e)) from e
+@app.get("/companies/{id}/actions")
+def actions(id:UUID,db:Session=Depends(get_db)):get_company(db,id);return db.scalars(select(Action).where(Action.company_id==id).order_by(Action.created_at.desc())).all()
