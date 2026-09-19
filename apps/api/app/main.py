@@ -5,7 +5,7 @@ from sqlalchemy import select,func
 from sqlalchemy.orm import Session
 from .config import settings
 from .db import get_db
-from .models import Company,Agent,Task,Message,Decision,Activity,CompanyStatus,Autonomy,Customer,Event,Meeting,Action,Goal,StrategyRevision,Plan,KPI,KPIObservation,CompanyCycle
+from .models import Company,Agent,Task,Message,Decision,Activity,CompanyStatus,Autonomy,Customer,Event,Meeting,Action,Goal,StrategyRevision,Plan,KPI,KPIObservation,CompanyCycle,AgentDecisionTrace,ActionResult,InformationRequest
 from .schemas import CompanyCreate,CompanyOut,TickOut
 from .services import bootstrap_company,run_tick
 from .finance import FinanceEngine
@@ -127,3 +127,11 @@ def autonomous_loop(id:UUID,db:Session=Depends(get_db)):
     cycles=list(db.scalars(select(CompanyCycle).where(CompanyCycle.company_id==id).order_by(CompanyCycle.tick.desc()).limit(20)))
     timeline=list(db.scalars(select(Activity).where(Activity.company_id==id).order_by(Activity.created_at.desc()).limit(50)))
     return {"company":{"status":c.status,"speed":c.speed,"tick":c.tick_number},"goal":goal,"strategy":strategy,"plans":plans,"kpis":kpis,"observations":observations,"cycles":cycles,"timeline":timeline}
+
+@app.get("/companies/{id}/agent-live")
+def agent_live(id:UUID,db:Session=Depends(get_db)):
+    get_company(db,id);rows=list(db.scalars(select(AgentDecisionTrace).where(AgentDecisionTrace.company_id==id).order_by(AgentDecisionTrace.created_at.desc()).limit(30)))
+    return rows
+@app.get("/agents/{id}/decision-traces")
+def decision_traces(id:UUID,db:Session=Depends(get_db)):
+    return list(db.scalars(select(AgentDecisionTrace).where(AgentDecisionTrace.agent_id==id).order_by(AgentDecisionTrace.created_at.desc()).limit(50)))
