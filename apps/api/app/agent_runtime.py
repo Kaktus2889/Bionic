@@ -5,6 +5,7 @@ from .memory import MemoryService
 from .agent_decision import ObservationBuilder,ActionIntent,AgentReflection,ActionEvaluator,ActionPolicy
 from .actions import ActionEngine,PermissionDenied
 from .config import settings
+from .intent_planner import IntentPlanner
 class AgentRuntime:
     def candidates(self,obs:dict)->list[ActionIntent]:
         if obs["information_requests"]:
@@ -15,10 +16,10 @@ class AgentRuntime:
         failed=any(x["status"]=="FAILED" for x in obs["recent_results"])
         if failed:return [ActionIntent(type="REQUEST_INFORMATION",objective=objective,reasoning_summary="Recent failure makes blind retry unsafe.",expected_result="Evidence for alternative approach",confidence=.82,priority="HIGH",target=t["id"]),ActionIntent(type="ESCALATE",objective=objective,reasoning_summary="Escalation is safer after repeated failure.",expected_result="Manager assistance",confidence=.72,target=t["id"])]
         return [ActionIntent(type="UPDATE_TASK",objective=objective,reasoning_summary="Current task has progressed and can be completed.",expected_result="Task completed and KPI can reflect result",confidence=.88,priority="HIGH",target=t["id"]),ActionIntent(type="REQUEST_REVIEW",objective=objective,reasoning_summary="Peer review is an alternative before completion.",expected_result="Independent verification",confidence=.62,target=t["id"])]
-    def step(self,db:Session,company)->dict:
+    async def step(self,db:Session,company)->dict:
         task=db.scalar(select(Task).where(Task.company_id==company.id,Task.status.in_([TaskStatus.IN_PROGRESS,TaskStatus.TODO])).order_by(Task.created_at))
         if not task:return {"acted":False}
-        agent=db.get(Agent,task.assignee_id);obs=ObservationBuilder().build(db,company,agent);cands=self.candidates(obs);selected=ActionEvaluator().choose(cands,obs);policy=ActionPolicy().check(db,company,agent,selected)
+        agent=db.get(Agent,task.assignee_id);obs=ObservationBuilder().build(db,company,agent);fallback=self.candidates(obs);cands=await IntentPlanner().propose(obs,fallback);selected=ActionEvaluator().choose(cands,obs);policy=ActionPolicy().check(db,company,agent,selected)
         trace=AgentDecisionTrace(company_id=company.id,agent_id=agent.id,objective=selected.objective,observation=obs,candidates=[x.model_dump() for x in cands],selected_intent=selected.model_dump(),policy_checks=policy);db.add(trace);db.flush()
         if not policy["allowed"]:
             db.add(Activity(company_id=company.id,agent_id=agent.id,action="INTENT_BLOCKED",module="agent_runtime_v2",detail=f"{selected.type}: policy denied"));return {"acted":False,"intent":selected.type}
